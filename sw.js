@@ -1,4 +1,4 @@
-const CACHE = 'magna-v3';
+const CACHE = 'magna-v4';
 const FILES = [
   './',
   './index.html',
@@ -22,9 +22,19 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// Red primero: con internet siempre baja la versión nueva; sin internet usa la guardada
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true })
-      .then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
+    fetch(e.request)
+      .then(resp => {
+        const copia = resp.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copia));
+        return resp;
+      })
+      .catch(() =>
+        caches.match(e.request, { ignoreSearch: true })
+          .then(r => r || caches.match('./index.html'))
+      )
   );
 });
