@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Magna O">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/182px-Python-logo-notext.svg.png">
+    <title>Conversor MAGNA-SIRGAS</title>
+    <style>
+        :root { --bg: #111; --box: #1e1e1e; --green: #00ff66; --text: #eee; --red: #ff5555; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 400px; }
+        .banner { border: 1px solid var(--green); padding: 10px; text-align: center; margin-bottom: 20px; font-family: monospace; font-size: 1.1em; color: var(--green); background: #0a2211; font-weight: bold; border-radius: 8px;}
+        .tabs { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+        .tab { flex: 1; padding: 12px 0; text-align: center; background: #222; color: #888; font-weight: bold; transition: 0.3s; }
+        .tab.active { background: var(--green); color: #000; }
+        label { font-size: 0.85em; color: #aaa; font-weight: bold; margin-bottom: 5px; display: block; }
+        input { width: 100%; box-sizing: border-box; background: var(--box); border: 1px solid #444; color: #fff; padding: 12px; font-size: 1em; margin-bottom: 15px; border-radius: 8px; outline: none; }
+        input:focus { border-color: var(--green); }
+        button { width: 100%; padding: 15px; background: #16a085; color: white; border: none; font-size: 1em; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+        button:active { background: #12876f; }
+        .terminal { background: var(--box); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; min-height: 150px; overflow-x: auto; color: var(--green); border: 1px solid #333; line-height: 1.4;}
+        .error { color: var(--red); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="banner">&gt; hallo oveja suicida &lt;</div>
+        
+        <div class="tabs">
+            <div class="tab active" id="tab1" onclick="setMode(1)">WGS 84 ➔ MAGNA</div>
+            <div class="tab" id="tab2" onclick="setMode(2)">MAGNA ➔ WGS 84</div>
+        </div>
+
+        <div id="inputs">
+            <label id="lbl1">Latitud (N/S):</label>
+            <input type="text" id="val1" placeholder="Ej: 6.64496692" autocomplete="off" autocorrect="off" autocapitalize="off">
+            <label id="lbl2">Longitud (E/W):</label>
+            <input type="text" id="val2" placeholder="Ej: -75.89917576" autocomplete="off" autocorrect="off" autocapitalize="off">
+        </div>
+
+        <button onclick="ejecutar()">⚡ EJECUTAR CONVERSIÓN ⚡</button>
+
+        <div class="terminal" id="resultado">=== PARÁMETROS ORÍGEN OESTE ===
+Lon Orig: W 077° 04.650' | Esc: 1.0
+F. Este: 1000000 | F. Norte: 1000000
+Datum: WGS 84
+-------------------------------
+Esperando coordenadas...</div>
+    </div>
+
+    <script>
+        let modo = 1;
+
+        // Motor Matemático MAGNA-SIRGAS Oeste
+        const a = 6378137.0;
+        const f = 1 / 298.257222101;
+        const e2 = 2 * f - f ** 2;
+        const ep2 = e2 / (1 - e2);
+        const lat0 = (4 + 35/60 + 46.3215/3600) * Math.PI / 180;
+        const lon0 = -(77 + 4/60 + 39.0285/3600) * Math.PI / 180;
+        const k0 = 1.0, FE = 1000000.0, FN = 1000000.0;
+
+        function _m(phi) {
+            return a * (
+                (1 - e2/4 - 3*e2**2/64 - 5*e2**3/256) * phi
+                - (3*e2/8 + 3*e2**2/32 + 45*e2**3/1024) * Math.sin(2*phi)
+                + (15*e2**2/256 + 45*e2**3/1024) * Math.sin(4*phi)
+                - (35*e2**3/3072) * Math.sin(6*phi)
+            );
+        }
+
+        function geog_a_plana(lat_deg, lon_deg) {
+            let phi = lat_deg * Math.PI / 180, lam = lon_deg * Math.PI / 180;
+            let N = a / Math.sqrt(1 - e2 * Math.sin(phi)**2);
+            let T = Math.tan(phi)**2, C = ep2 * Math.cos(phi)**2;
+            let A = (lam - lon0) * Math.cos(phi);
+            let M = _m(phi), M0 = _m(lat0);
+            let x = k0 * N * (A + (1-T+C)*A**3/6 + (5-18*T+T**2+72*C-58*ep2)*A**5/120);
+            let y = k0 * (M - M0 + N*Math.tan(phi) * (A**2/2 + (5-T+9*C+4*C**2)*A**4/24 + (61-58*T+T**2+600*C-330*ep2)*A**6/720));
+            return [FE + x, FN + y];
+        }
+
+        function plana_a_geog(este, norte) {
+            let x = este - FE, y = norte - FN;
+            let M = _m(lat0) + y / k0;
+            let mu = M / (a * (1 - e2/4 - 3*e2**2/64 - 5*e2**3/256));
+            let e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+            let phi1 = mu + (3*e1/2 - 27*e1**3/32)*Math.sin(2*mu) + (21*e1**2/16 - 55*e1**4/32)*Math.sin(4*mu) + (151*e1**3/96)*Math.sin(6*mu);
+            let N1 = a / Math.sqrt(1 - e2 * Math.sin(phi1)**2);
+            let T1 = Math.tan(phi1)**2, C1 = ep2 * Math.cos(phi1)**2;
+            let R1 = a * (1 - e2) / Math.pow(1 - e2 * Math.sin(phi1)**2, 1.5);
+            let D = x / (N1 * k0);
+            let phi = phi1 - (N1 * Math.tan(phi1)/R1) * (D**2/2 - (5+3*T1+10*C1-4*C1**2-9*ep2)*D**4/24 + (61+90*T1+298*C1+45*T1**2-252*ep2-3*C1**2)*D**6/720);
+            let lam = lon0 + (D - (1+2*T1+C1)*D**3/6 + (5-2*C1+28*T1-3*C1**2+8*ep2+24*T1**2)*D**5/120) / Math.cos(phi1);
+            return [phi * 180 / Math.PI, lam * 180 / Math.PI];
+        }
+
+        // Interfaz y Validadores Simples
+        function setMode(m) {
+            modo = m;
+            document.getElementById('tab1').className = m === 1 ? 'tab active' : 'tab';
+            document.getElementById('tab2').className = m === 2 ? 'tab active' : 'tab';
+            document.getElementById('lbl1').innerText = m === 1 ? 'Latitud (N/S):' : 'Este (E) en metros:';
+            document.getElementById('val1').placeholder = m === 1 ? 'Ej: 6.64496692' : 'Ej: 1130305';
+            document.getElementById('lbl2').innerText = m === 1 ? 'Longitud (E/W):' : 'Norte (N) en metros:';
+            document.getElementById('val2').placeholder = m === 1 ? 'Ej: -75.89917576' : 'Ej: 1226718';
+            document.getElementById('val1').value = ''; document.getElementById('val2').value = '';
+        }
+
+        function cleanNumber(txt) {
+            let t = txt.toUpperCase().replace(/,/g, '.').replace(/[^\d.\-]/g, '');
+            let f = parseFloat(t);
+            if (isNaN(f)) throw "Formato de número inválido.";
+            return f;
+        }
+
+        function toGMS(deg, isLat) {
+            let d = Math.floor(Math.abs(deg));
+            let m = Math.floor((Math.abs(deg) - d) * 60);
+            let s = ((Math.abs(deg) - d - m/60) * 3600).toFixed(4);
+            let l = isLat ? (deg >= 0 ? "N" : "S") : (deg >= 0 ? "E" : "W");
+            return `${d}° ${m}' ${s}" ${l}`;
+        }
+
+        function ejecutar() {
+            let res = document.getElementById('resultado');
+            let v1 = document.getElementById('val1').value.trim();
+            let v2 = document.getElementById('val2').value.trim();
+
+            if(v1 && !v2 && v1.includes(",")) {
+                let parts = v1.split(",");
+                if(parts.length >= 2) { v1 = parts[0]; v2 = parts[1]; }
+            }
+
+            if(!v1 || !v2) {
+                res.innerHTML = '<span class="error">❌ ERROR: Llena ambos campos.</span>';
+                return;
+            }
+
+            try {
+                if(modo === 1) {
+                    let lat = cleanNumber(v1);
+                    let lon = cleanNumber(v2);
+                    let [este, norte] = geog_a_plana(lat, lon);
+                    res.innerHTML = `=== MAGNA-SIRGAS WEST ===\n\nEste (X) : ${este.toFixed(3)} m\nNorte (Y): ${norte.toFixed(3)} m\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}`;
+                } else {
+                    let este = cleanNumber(v1);
+                    let norte = cleanNumber(v2);
+                    if(este < 50000 || este > 2000000) throw "Coordenada fuera de rango MAGNA.";
+                    let [lat, lon] = plana_a_geog(este, norte);
+                    res.innerHTML = `=== WGS 84 ===\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}\n\nLat: ${toGMS(lat, true)}\nLon: ${toGMS(lon, false)}`;
+                }
+            } catch(e) {
+                res.innerHTML = `<span class="error">❌ ERROR: ${e}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
