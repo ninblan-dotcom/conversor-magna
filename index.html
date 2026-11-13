@@ -21,7 +21,7 @@
         input:focus { border-color: var(--green); }
         button { width: 100%; padding: 15px; background: #16a085; color: white; border: none; font-size: 1em; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
         button:active { background: #12876f; }
-        .terminal { background: var(--box); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; min-height: 150px; overflow-x: auto; color: var(--green); border: 1px solid #333; line-height: 1.4;}
+        .terminal { background: var(--box); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap; min-height: 150px; overflow-x: auto; color: var(--green); border: 1px solid #333; line-height: 1.4;}
         .error { color: var(--red); }
     </style>
 </head>
@@ -44,7 +44,9 @@
         <button onclick="ejecutar()">⚡ EJECUTAR CONVERSIÓN ⚡</button>
 
         <div class="terminal" id="resultado">=== PARÁMETROS ORÍGEN OESTE ===
-Lon Orig: W 077° 04.650' | Esc: 1.0
+Lat Orig: N 04° 35.772'
+Lon Orig: W 077° 04.650'
+Escala: 1.0000000
 F. Este: 1000000 | F. Norte: 1000000
 Datum: WGS 84
 -------------------------------
@@ -98,7 +100,6 @@ Esperando coordenadas...</div>
             return [phi * 180 / Math.PI, lam * 180 / Math.PI];
         }
 
-        // Interfaz y Validadores Simples
         function setMode(m) {
             modo = m;
             document.getElementById('tab1').className = m === 1 ? 'tab active' : 'tab';
@@ -145,13 +146,20 @@ Esperando coordenadas...</div>
                     let lat = cleanNumber(v1);
                     let lon = cleanNumber(v2);
                     let [este, norte] = geog_a_plana(lat, lon);
-                    res.innerHTML = `=== MAGNA-SIRGAS WEST ===\n\nEste (X) : ${este.toFixed(3)} m\nNorte (Y): ${norte.toFixed(3)} m\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}`;
+                    let output = `=== MAGNA-SIRGAS WEST ===\n\nEste (X) : ${este.toFixed(3)} m\nNorte (Y): ${norte.toFixed(3)} m\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}`;
+                    
+                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 0491966";
+                    res.innerHTML = output;
+
                 } else {
                     let este = cleanNumber(v1);
                     let norte = cleanNumber(v2);
                     if(este < 50000 || este > 2000000) throw "Coordenada fuera de rango MAGNA.";
                     let [lat, lon] = plana_a_geog(este, norte);
-                    res.innerHTML = `=== WGS 84 ===\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}\n\nLat: ${toGMS(lat, true)}\nLon: ${toGMS(lon, false)}`;
+                    let output = `=== WGS 84 ===\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}\n\nLat: ${toGMS(lat, true)}\nLon: ${toGMS(lon, false)}`;
+                    
+                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 0491966";
+                    res.innerHTML = output;
                 }
             } catch(e) {
                 res.innerHTML = `<span class="error">❌ ERROR: ${e}</span>`;
