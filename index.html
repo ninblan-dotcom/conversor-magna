@@ -61,11 +61,12 @@ Datum: WGS 84
 -------------------------------
 Esperando coordenadas...</div>
 
-        <button class="sec" onclick="copiar()">📋 COPIAR RESULTADO</button>
+        <button class="sec" onclick="copiar()">📋 COPIAR COORDENADAS</button>
     </div>
 
     <script>
         let modo = 1;
+        let textoCopiar = '';
 
         // Motor Matemático MAGNA-SIRGAS Oeste
         const a = 6378137.0;
@@ -148,6 +149,7 @@ Esperando coordenadas...</div>
             }
 
             if(!v1 || !v2) {
+                textoCopiar = '';
                 res.innerHTML = '<span class="error">❌ ERROR: Llena ambos campos.</span>';
                 return;
             }
@@ -161,6 +163,7 @@ Esperando coordenadas...</div>
 
                     output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 1000000";
                     res.innerText = output;
+                    textoCopiar = `${este.toFixed(3)}, ${norte.toFixed(3)}`;
 
                 } else {
                     let este = cleanNumber(v1);
@@ -171,15 +174,18 @@ Esperando coordenadas...</div>
 
                     output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 1000000";
                     res.innerText = output;
+                    textoCopiar = `${lat.toFixed(8)}, ${lon.toFixed(8)}`;
                 }
             } catch(e) {
+                textoCopiar = '';
                 res.innerHTML = `<span class="error">❌ ERROR: ${e}</span>`;
             }
         }
 
         function copiar() {
-            const txt = document.getElementById('resultado').innerText;
-            const ok = () => alert('Copiado');
+            const txt = textoCopiar;
+            if (!txt) { alert('Primero ejecuta una conversión'); return; }
+            const ok = () => alert('Copiado: ' + txt);
 
             function fallback() {
                 const ta = document.createElement('textarea');

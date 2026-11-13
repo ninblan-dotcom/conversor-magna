@@ -1,4 +1,4 @@
-const CACHE = 'magna-v2';
+const CACHE = 'magna-v3';
 const FILES = [
   './',
   './index.html',
