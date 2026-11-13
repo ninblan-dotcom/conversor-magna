@@ -8,15 +8,14 @@
     <meta name="theme-color" content="#111111">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Magna O">
-    
-    <!-- Ícono SVG 100% offline -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23111111'/><text x='50' y='70' font-size='60' font-family='monospace' font-weight='bold' text-anchor='middle' fill='%2300ff66'>M</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23111111'/><text x='50' y='70' font-size='60' font-family='monospace' font-weight='bold' text-anchor='middle' fill='%2300ff66'>M</text></svg>">
-    
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
     <title>Conversor MAGNA-SIRGAS</title>
     <style>
         :root { --bg: #111; --box: #1e1e1e; --green: #00ff66; --text: #eee; --red: #ff5555; }
-        /* Solución clave para evitar bloqueos táctiles en Android */
         * { box-sizing: border-box; touch-action: manipulation; }
         html, body { min-height: 100%; overflow-y: auto; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
@@ -30,14 +29,15 @@
         input:focus { border-color: var(--green); }
         button { width: 100%; padding: 15px; background: #16a085; color: white; border: none; font-size: 1em; font-weight: bold; border-radius: 8px; margin-bottom: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         button:active { background: #12876f; }
-        .terminal { background: var(--box); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap; min-height: 150px; overflow-x: auto; color: var(--green); border: 1px solid #333; line-height: 1.4;}
+        button.sec { background: #2c3e50; margin-top: 15px; }
+        .terminal { background: var(--box); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap; min-height: 150px; overflow-x: auto; color: var(--green); border: 1px solid #333; line-height: 1.4; -webkit-user-select: text; user-select: text; }
         .error { color: var(--red); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="banner">&gt; hallo oveja suicida &lt;</div>
-        
+
         <div class="tabs">
             <div class="tab active" id="tab1" onclick="setMode(1)">WGS 84 ➔ MAGNA</div>
             <div class="tab" id="tab2" onclick="setMode(2)">MAGNA ➔ WGS 84</div>
@@ -60,6 +60,8 @@ F. Este: 1000000 | F. Norte: 1000000
 Datum: WGS 84
 -------------------------------
 Esperando coordenadas...</div>
+
+        <button class="sec" onclick="copiar()">📋 COPIAR RESULTADO</button>
     </div>
 
     <script>
@@ -156,9 +158,9 @@ Esperando coordenadas...</div>
                     let lon = cleanNumber(v2);
                     let [este, norte] = geog_a_plana(lat, lon);
                     let output = `=== MAGNA-SIRGAS WEST ===\n\nEste (X) : ${este.toFixed(3)} m\nNorte (Y): ${norte.toFixed(3)} m\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}`;
-                    
-                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 0491966";
-                    res.innerHTML = output;
+
+                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 1000000";
+                    res.innerText = output;
 
                 } else {
                     let este = cleanNumber(v1);
@@ -166,13 +168,42 @@ Esperando coordenadas...</div>
                     if(este < 50000 || este > 2000000) throw "Coordenada fuera de rango MAGNA.";
                     let [lat, lon] = plana_a_geog(este, norte);
                     let output = `=== WGS 84 ===\n\nGoogle Maps:\n${lat.toFixed(8)}, ${lon.toFixed(8)}\n\nLat: ${toGMS(lat, true)}\nLon: ${toGMS(lon, false)}`;
-                    
-                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 0491966";
-                    res.innerHTML = output;
+
+                    output += "\n\n-------------------------------\n[GPS] Origen Oeste:\nLat: N 04° 35.772' | Lon: W 077° 04.650'\nEscala: 1.0 | FE: 1000000 | FN: 1000000";
+                    res.innerText = output;
                 }
             } catch(e) {
                 res.innerHTML = `<span class="error">❌ ERROR: ${e}</span>`;
             }
+        }
+
+        function copiar() {
+            const txt = document.getElementById('resultado').innerText;
+            const ok = () => alert('Copiado');
+
+            function fallback() {
+                const ta = document.createElement('textarea');
+                ta.value = txt;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus(); ta.select();
+                try { document.execCommand('copy'); ok(); } catch (e) { alert('No se pudo copiar'); }
+                document.body.removeChild(ta);
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(ok).catch(fallback);
+            } else {
+                fallback();
+            }
+        }
+
+        // Service worker para uso sin internet
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(console.error);
+            });
         }
     </script>
 </body>
